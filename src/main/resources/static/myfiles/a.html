@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>我的22</title>
+    <script src="../js/vue.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- import Vue before Element -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="./js/element.js"></script>
+    <script src="./js/common.js"></script>
+    <script src="./js/footer.js"></script>
+</head>
+<style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .block {
+        margin-top: 15px;
+        margin-left: 15px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    .username {
+        margin-left: 15%;
+    }
+
+    .signal {
+        float: left;
+        padding-left: 3px;
+    }
+
+    .hr {
+        color: bisque;
+        height: 2px;
+    }
+
+    .box-card {
+        margin-left: auto;
+        margin-right: auto;
+        width: 90%;
+        width: 90%;
+        height: 120px;
+    }
+
+    .img_card {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .bigImage {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 90%;
+        height: 90%;
+        /* background-color: rgba(0, 0, 0, 0.7); */
+        object-fit: contain;
+    }
+</style>
+<body>
+<div id="app">
+    <div class="block">
+        <el-avatar :size="80" :src="user.icon"></el-avatar>
+        <div class="username">
+            <p style="font-family: '楷体';font-size: 20px;">{{user.Nickname}}</p>
+            <div class="signal" v-for="a in user.advantage">
+                <el-tag type="warning">{{a}}</el-tag>
+            </div>
+        </div>
+        <div style="margin-left:15%">
+            <el-button type="warning">退出登录</el-button>
+        </div>
+    </div>
+    <hr class="hr">
+    <el-tabs v-model="activeName">
+        <el-tab-pane label="我的作品" name="first">
+            <el-empty v-if="myWorks==''" description="你还没有上传作品"></el-empty>
+            <div v-else style="margin-top: 5px;" v-for="mw in myWorks">
+                <el-card class="box-card" :body-style="{ padding: '3px' }" style="overflow: auto;">
+                    <div class="img_card">
+                        <el-image style="width: 100px; height: 100px;" :src="mw.url" fit="cover"
+                                  @click="getBig(mw)" @touchstart="onTouchStart(mw)" @touchend="onTouchEnd">
+                        </el-image>
+                        <div>
+                            <p>时间：{{mw.date}}</p>
+                            <p>名称：{{mw.name}}</p>
+                            <p>简介：{{mw.description}}</p>
+                        </div>
+                    </div>
+                </el-card>
+            </div>
+        </el-tab-pane>
+        <!-- 信息删除提示 -->
+        <el-dialog title="警告" :visible.sync="delDialog" width="80%">
+            <span>该作品将永久删除，是否继续？</span>
+            <span slot="footer" class="dialog-footer">
+						<el-button @click="delDialog = false">取 消</el-button>
+						<el-button type="primary" @click="delOn">确 定</el-button>
+					</span>
+        </el-dialog>
+
+        <!-- 放大图片 -->
+        <el-dialog :visible.sync="imageDialog" width="80%">
+            <div style="width: 75%;">
+                <img :src="imageUrl" width="260" height="200" style="object-fit:cover;" alt="图片加载失败">
+            </div>
+        </el-dialog>
+        <el-tab-pane label="我的收藏" name="second">
+            <el-empty v-if="myCollection==''" description="你还没有收藏作品"></el-empty>
+            <div v-else style="margin-top: 5px;" v-for="mc in myCollection">
+                <el-card class="box-card" :body-style="{ padding: '3px' }" style="overflow: auto;">
+                    <div class="img_card">
+                        <el-image style="width: 100px; height: 100px;" :src="mc.image" fit="cover"
+                                  @click="getBig(mc)" @touchstart="onTouchStart(mc)" @touchend="onTouchEnd">
+                        </el-image>
+                        <div>
+                            <p>名称：{{mc.name}}</p>
+                            <p>作者：{{mc.description}}</p>
+                        </div>
+                    </div>
+                </el-card>
+            </div>
+        </el-tab-pane>
+        <el-tab-pane label="我的字帖" name="third">
+            <el-empty description="你还没有收集字帖哦"></el-empty>
+        </el-tab-pane>
+        <el-tab-pane label="关注" name="fourth">
+            <el-empty description="你还没有关注的作者"></el-empty>
+        </el-tab-pane>
+    </el-tabs>
+</div>
+</body>
+<!-- 引入组件库 -->
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script src="./js/footer.js"></script>
+<script>
+    new Vue({
+        el: "#app",
+        mounted() {
+            this.getUser()
+            this.getWorks()
+            this.getCollection()
+        },
+        data() {
+            return {
+                user: {
+                    id: '1',
+                    username: '张三',
+                    icon: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+                    advantage: ['行书', '隶书']
+                },
+                activeName: 'first',
+                fileList: [{
+                    name: 'food.jpeg',
+                    url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'
+                }, {
+                    name: 'food2.jpeg',
+                    url: 'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'
+                }],
+                delDialog: false,
+                imageDialog: false,
+                //放置我的作品
+                myWorks: [{
+                    id: '1',
+                    name: '满江红',
+                    description: '岳飞写的，本人进行临摹',
+                    wordpostId: '2',
+                    url: 'https://picsum.photos/id/1015/500/300',
+                    date: '2022-10-18'
+                }, {
+                    id: '2',
+                    name: '满江红',
+                    wordpostId: '2',
+                    description: '岳飞写的，本人进行临摹',
+                    url: 'https://picsum.photos/id/1015/500/300',
+                    date: '2022-10-18'
+                }],
+                //放置我的收藏
+                myCollection: [{
+                    id: '2',
+                    name: '兰亭集序',
+                    description: '王羲之写的,本人进行临摹',
+                    image: 'https://picsum.photos/id/1015/500/300',
+                    date: '2021-09-18',
+                    author: "贾梓钊",
+                    wordpostId: '2'
+                }, {
+                    id: '3',
+                    name: '兰亭集序',
+                    description: '王羲之写的,本人进行临摹',
+                    image: 'https://picsum.photos/id/1015/500/300',
+                    date: '2021-09-18',
+                    author: "贾梓钊",
+                    wordpostId: '2'
+                }],
+                timer: 0,
+                imageUrl: ''
+            }
+        },
+        methods: {
+            handleRemove(file, fileList) {
+                console.log(file, fileList);
+            },
+            handlePreview(file) {
+                console.log(file);
+            },
+            //获取收藏
+            getCollection() {
+                axios.get("http://localhost:8083/api/user/myfont").then((res) => {
+                    this.myCollection = res.data.data
+                })
+            },
+            //获取我的作品
+            getWorks(val) {
+
+            },
+            //获取用户基本信息
+            getUser() {
+                axios.get('http://localhost:8083/api/user/me').then((res)=>{
+                    this.user=res.data.data
+                    alert("this.user.nickName : ")
+                    alert(this.user.nickName)
+                    console.log(this.user)
+                })
+            },
+            //放大图像
+            getBig(val) {
+                this.imageUrl = val.image
+                this.imageDialog = true
+            },
+            //确定删除数据
+            delOn() {
+
+            },
+            onTouchStart() {
+                this.timer = setTimeout(() => {
+                    this.delDialog = true
+                }, 1000);
+            },
+            onTouchEnd() {
+                clearTimeout(this.timer);
+            }
+        },
+    })
+</script>
+</html>
